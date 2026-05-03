@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Micrographic Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/opentype.js@latest/dist/opentype.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.17/paper-full.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'Roboto Mono';
+            src: url('fonts/roboto-mono/RobotoMono-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Roboto Mono';
+            src: url('fonts/roboto-mono/RobotoMono-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body, html {
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background: #000;
+            color: #000;
+        }
+
+        .container {
+            display: grid;
+            grid-template-rows: 1fr auto;
+            grid-template-columns: 250px 1fr;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            grid-row: 1;
+            grid-column: 1;
+            background: #d4d4d4;
+            border-right: 2px solid #000;
+            border-bottom: 2px solid #000;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            font-size: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0 0 15px 0;
+            background: #000;
+            color: #fff;
+            padding: 8px;
+        }
+
+        .canvas-controls {
+            padding: 10px;
+            border-bottom: 2px solid #000;
+            margin-bottom: 15px;
+        }
+
+        .canvas-controls label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 10px;
+        }
+
+        .canvas-controls input {
+            width: 80px;
+            padding: 4px;
+            font-family: inherit;
+            border: 1px solid #000;
+        }
+
+        .canvas-controls button {
+            width: 100%;
+            padding: 8px;
+            background: #000;
+            color: #fff;
+            border: 2px solid #000;
+            font-family: inherit;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        .canvas-controls button:hover {
+            background: #333;
+        }
+
+        .sidebar-item {
+            background: #fff;
+            border: 1px solid #000;
+            padding: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            font-size: 11px;
+            cursor: move;
+            user-select: none;
+        }
+
+        .sidebar-item.dragging {
+            opacity: 0.5;
+        }
+
+        .sidebar-item.drag-over {
+            border-top: 3px solid #000;
+        }
+
+        .main-content {
+            grid-row: 1;
+            grid-column: 2;
+            background: #d4d4d4;
+            border-bottom: 2px solid #000;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bottom-section {
+            grid-row: 2;
+            grid-column: 1 / -1;
+            background: #d4d4d4;
+            position: relative;
+            height: 200px;
+            min-height: 200px;
+            max-height: 200px;
+        }
+
+        #canvas {
+            display: block;
+            border: 1px dotted #000;
+            background: transparent;
+            position: relative;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .canvas-handle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #000;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .canvas-handle.tl { top: -4px; left: -4px; cursor: nwse-resize; }
+        .canvas-handle.tr { top: -4px; right: -4px; cursor: nesw-resize; }
+        .canvas-handle.bl { bottom: -4px; left: -4px; cursor: nesw-resize; }
+        .canvas-handle.br { bottom: -4px; right: -4px; cursor: nwse-resize; }
+
+        #diagnostic-panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 250px;
+            background: transparent;
+            border-left: 2px solid #000;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #diagnostic-panel header {
+            font-size: 9px;
+            font-weight: bold;
+            padding: 8px;
+            background: #000;
+            color: #fff;
+            text-transform: uppercase;
+            border-bottom: 2px solid #000;
+        }
+
+        #diagnostic-panel .content {
+            padding: 10px;
+            background: #d4d4d4;
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #diagnostic-panel .x-diagram {
+            width: 100%;
+            height: 80px;
+            margin-bottom: 10px;
+        }
+
+        #diagnostic-panel .x-diagram svg {
+            max-height: 80px;
+        }
+
+        #diagnostic-panel .stats {
+            font-size: 9px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <h2>Canvas Size</h2>
+            <div class="canvas-controls">
+                <label>WIDTH (px): <input type="number" id="canvas-width" value="600"></label>
+                <label>HEIGHT (px): <input type="number" id="canvas-height" value="400"></label>
+                <button id="apply-size">APPLY</button>
+            </div>
+            <h2>Elements</h2>
+            <div id="sidebar-list"></div>
+        </aside>
+        <main class="main-content">
+            <div class="canvas-wrapper">
+                <canvas id="canvas"></canvas>
+                <div class="canvas-handle tl" data-corner="tl"></div>
+                <div class="canvas-handle tr" data-corner="tr"></div>
+                <div class="canvas-handle bl" data-corner="bl"></div>
+                <div class="canvas-handle br" data-corner="br"></div>
+            </div>
+        </main>
+        <div class="bottom-section">
+            <aside id="diagnostic-panel">
+                <header>Unit System</header>
+                <div class="content">
+                    <div class="x-diagram" id="x-diagram"></div>
+                    <div class="stats">
+                        <div id="diag-info">1U = --</div>
+                        <div id="diag-font" style="margin-top: 5px; font-size: 8px;">FONT: --</div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        let elements = [
+            { type: "A", text: "WARNING LABEL", fontSize: 1.2 },
+            { type: "B", icon: "square", label: "FIRE" },
+            { type: "B", icon: "circle", label: "INFO" },
+            { type: "C", rows: [
+                { label: "VOLTAGE", value: "230V AC" },
+                { label: "FREQUENCY", value: "50/60Hz" },
+                { label: "MODEL", value: "XJ-2000" }
+            ]},
+            { type: "B", icon: "triangle", label: "CAUTION" },
+            { type: "B", icon: "square", label: "SAFE" },
+            { type: "B", icon: "svg", svgPath: "logos/extendo.svg", label: "EXTENDO" },
+            { type: "B", icon: "svg", svgPath: "logos/extendo_nes.svg", label: "EXTENDO NES" }
+        ];
+
+        let BASE_UNIT = 50;
+        let UNIT = 50;
+        let GRID_SIZE = 50;
+        let GUTTER = 25;
+        let ICON_SIZE = 100;
+        let CANVAS_WIDTH = 600;
+        let CANVAS_HEIGHT = 400;
+        let font = null;
+        let svgCache = {};
+        let FONT_NAME = 'Roboto Mono';
+
+        async function loadSVG(path) {
+            if (svgCache[path]) return svgCache[path];
+            try {
+                const response = await fetch(path);
+                const svgText = await response.text();
+                svgCache[path] = svgText;
+                return svgText;
+            } catch (err) {
+                console.error('SVG load failed:', path, err);
+                return null;
+            }
+        }
+
+        async function loadFont() {
+            try {
+                const fontUrl = 'fonts/roboto-mono/RobotoMono-Regular.ttf';
+                const response = await fetch(fontUrl);
+                const arrayBuffer = await response.arrayBuffer();
+                font = opentype.parse(arrayBuffer);
+
+                const unitsPerEm = font.unitsPerEm;
+                const sxHeight = font.tables.os2.sxHeight;
+                const baseFontSize = 100;
+                const scale = baseFontSize / unitsPerEm;
+                BASE_UNIT = sxHeight * scale;
+                UNIT = BASE_UNIT;
+
+                document.getElementById('diag-info').textContent = `1U = ${BASE_UNIT.toFixed(1)}px`;
+                document.getElementById('diag-font').textContent = `FONT: ${FONT_NAME}`;
+                renderXDiagram(sxHeight, unitsPerEm, baseFontSize);
+            } catch (err) {
+                console.error('Font load failed:', err);
+            }
+        }
+
+        function renderXDiagram(sxHeight, unitsPerEm, baseFontSize) {
+            const container = document.getElementById('x-diagram');
+            const svgNS = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("width", "100%");
+            svg.setAttribute("height", "80");
+
+            if (!font) return;
+
+            const glyph = font.charToGlyph('x');
+            const baseline = 60;
+            const centerX = 100;
+            const renderSize = 60;
+            const path = glyph.getPath(centerX, baseline, renderSize);
+
+            const pathElement = document.createElementNS(svgNS, "path");
+            pathElement.setAttribute("d", path.toPathData());
+            pathElement.setAttribute("fill", "black");
+            svg.appendChild(pathElement);
+
+            const bbox = glyph.getBoundingBox();
+            const scale = renderSize / unitsPerEm;
+            const leftEdge = centerX + (bbox.x1 * scale);
+            const rightEdge = centerX + (bbox.x2 * scale);
+            const displayXHeight = sxHeight * scale;
+
+            const topY = baseline - displayXHeight;
+            const bottomY = baseline;
+
+            const topLine = document.createElementNS(svgNS, "line");
+            topLine.setAttribute("x1", leftEdge);
+            topLine.setAttribute("y1", topY);
+            topLine.setAttribute("x2", rightEdge);
+            topLine.setAttribute("y2", topY);
+            topLine.setAttribute("stroke", "red");
+            topLine.setAttribute("stroke-width", "2");
+
+            const bottomLine = document.createElementNS(svgNS, "line");
+            bottomLine.setAttribute("x1", leftEdge);
+            bottomLine.setAttribute("y1", bottomY);
+            bottomLine.setAttribute("x2", rightEdge);
+            bottomLine.setAttribute("y2", bottomY);
+            bottomLine.setAttribute("stroke", "red");
+            bottomLine.setAttribute("stroke-width", "2");
+
+            svg.appendChild(topLine);
+            svg.appendChild(bottomLine);
+            svg.setAttribute("viewBox", `0 0 200 80`);
+
+            container.innerHTML = '';
+            container.appendChild(svg);
+        }
+
+        async function createIcon(type, size, svgPath) {
+            const group = new paper.Group();
+            const sw = size * 0.08;
+
+            if (type === 'svg' && svgPath) {
+                const svgData = await loadSVG(svgPath);
+                if (svgData) {
+                    const imported = paper.project.importSVG(svgData);
+                    imported.scale(size / Math.max(imported.bounds.width, imported.bounds.height));
+                    group.addChild(imported);
+                }
+                return group;
+            }
+
+            switch(type) {
+                case 'square':
+                    group.addChild(new paper.Path.Rectangle({
+                        point: [0, 0],
+                        size: [size, size],
+                        strokeColor: 'black',
+                        strokeWidth: sw
+                    }));
+                    break;
+                case 'triangle':
+                    group.addChild(new paper.Path({
+                        segments: [[size/2, 0], [0, size], [size, size]],
+                        closed: true,
+                        strokeColor: 'black',
+                        strokeWidth: sw
+                    }));
+                    break;
+                case 'circle':
+                    group.addChild(new paper.Path.Circle({
+                        center: [size/2, size/2],
+                        radius: size/2,
+                        strokeColor: 'black',
+                        strokeWidth: sw
+                    }));
+                    break;
+                case 'lightning':
+                    group.addChild(new paper.Path({
+                        segments: [[size*0.6,0], [size*0.1,size*0.6], [size*0.5,size*0.6], [size*0.4,size], [size*0.9,size*0.4], [size*0.5,size*0.4]],
+                        closed: true,
+                        strokeColor: 'black',
+                        strokeWidth: sw
+                    }));
+                    break;
+                case 'skull':
+                    group.addChildren([
+                        new paper.Path.Circle({ center: [size*0.5, size*0.35], radius: size*0.25, strokeColor: 'black', strokeWidth: sw }),
+                        new paper.Path.Rectangle({ point: [size*0.3, size*0.55], size: [size*0.4, size*0.3], strokeColor: 'black', strokeWidth: sw }),
+                        new paper.Path.Circle({ center: [size*0.38, size*0.32], radius: size*0.06, fillColor: 'black' }),
+                        new paper.Path.Circle({ center: [size*0.62, size*0.32], radius: size*0.06, fillColor: 'black' })
+                    ]);
+                    break;
+            }
+            return group;
+        }
+
+        async function renderContent(canvasWidth) {
+            let cursorX = GUTTER;
+            let cursorY = GUTTER;
+            let maxRowHeight = 0;
+
+            for (const element of elements) {
+                if (element.type === 'A') {
+                    if (cursorX > GUTTER) {
+                        cursorX = GUTTER;
+                        cursorY += maxRowHeight + GUTTER;
+                    }
+
+                    const text = new paper.PointText({
+                        point: [canvasWidth / 2, cursorY + element.fontSize * UNIT],
+                        content: element.text,
+                        fontFamily: FONT_NAME,
+                        fontSize: element.fontSize * UNIT,
+                        fontWeight: 'bold',
+                        fillColor: 'black',
+                        justification: 'center'
+                    });
+
+                    cursorY += element.fontSize * UNIT + GUTTER;
+                    cursorX = GUTTER;
+                    maxRowHeight = 0;
+
+                } else if (element.type === 'B') {
+                    const icon = await createIcon(element.icon, ICON_SIZE, element.svgPath);
+                    const bounds = icon.bounds;
+                    const itemWidth = Math.ceil(bounds.width / GRID_SIZE) * GRID_SIZE;
+                    const itemHeight = Math.ceil(bounds.height / GRID_SIZE) * GRID_SIZE;
+
+                    if (cursorX + itemWidth > canvasWidth) {
+                        cursorX = GUTTER;
+                        cursorY += maxRowHeight + GUTTER;
+                        maxRowHeight = 0;
+                    }
+
+                    icon.position = new paper.Point(cursorX + bounds.width/2, cursorY + bounds.height/2);
+                    cursorX += itemWidth + GUTTER;
+                    maxRowHeight = Math.max(maxRowHeight, itemHeight);
+
+                } else if (element.type === 'C') {
+                    const rowHeight = UNIT * 1.2;
+                    const group = new paper.Group();
+
+                    element.rows.forEach((row, i) => {
+                        const y = (i + 1) * rowHeight;
+                        const label = new paper.PointText({
+                            point: [0, y],
+                            content: row.label,
+                            fontFamily: FONT_NAME,
+                            fontSize: UNIT * 0.8,
+                            fillColor: 'black',
+                            justification: 'left'
+                        });
+                        const value = new paper.PointText({
+                            point: [label.bounds.width + GUTTER, y],
+                            content: row.value,
+                            fontFamily: FONT_NAME,
+                            fontSize: UNIT * 0.8,
+                            fillColor: 'black',
+                            justification: 'left'
+                        });
+                        group.addChildren([label, value]);
+                    });
+
+                    const bounds = group.bounds;
+                    const tableWidth = Math.ceil(bounds.width / GRID_SIZE) * GRID_SIZE;
+                    const tableHeight = bounds.height;
+
+                    if (cursorX + tableWidth > canvasWidth) {
+                        cursorX = GUTTER;
+                        cursorY += maxRowHeight + GUTTER;
+                        maxRowHeight = 0;
+                    }
+
+                    group.position = new paper.Point(cursorX + bounds.width/2, cursorY + bounds.height/2);
+                    cursorX += tableWidth + GUTTER;
+                    maxRowHeight = Math.max(maxRowHeight, tableHeight);
+                }
+            }
+
+            return {
+                width: canvasWidth,
+                height: cursorY + maxRowHeight + GUTTER
+            };
+        }
+
+        async function render() {
+            paper.project.clear();
+
+            // Set canvas size
+            paper.view.viewSize = new paper.Size(CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // Measure at base UNIT
+            UNIT = BASE_UNIT;
+            GRID_SIZE = UNIT;
+            GUTTER = UNIT * 0.5;
+            ICON_SIZE = UNIT * 2;
+
+            const bounds = await renderContent(CANVAS_WIDTH);
+            paper.project.clear();
+
+            // Calculate scale
+            const scaleX = CANVAS_WIDTH / bounds.width;
+            const scaleY = CANVAS_HEIGHT / bounds.height;
+            const scale = Math.min(scaleX, scaleY, 1);
+
+            // Apply scale
+            UNIT = BASE_UNIT * scale;
+            GRID_SIZE = UNIT;
+            GUTTER = UNIT * 0.5;
+            ICON_SIZE = UNIT * 2;
+
+            // Render scaled
+            const finalBounds = await renderContent(CANVAS_WIDTH);
+
+            // Center
+            const offsetX = (CANVAS_WIDTH - finalBounds.width) / 2;
+            const offsetY = (CANVAS_HEIGHT - finalBounds.height) / 2;
+            paper.project.activeLayer.position = paper.project.activeLayer.position.add(new paper.Point(offsetX, offsetY));
+
+            // Draw grid
+            for (let x = 0; x < CANVAS_WIDTH; x += GRID_SIZE) {
+                new paper.Path.Line({
+                    from: [x, 0],
+                    to: [x, CANVAS_HEIGHT],
+                    strokeColor: '#aaa',
+                    strokeWidth: 0.5
+                }).sendToBack();
+            }
+            for (let y = 0; y < CANVAS_HEIGHT; y += GRID_SIZE) {
+                new paper.Path.Line({
+                    from: [0, y],
+                    to: [CANVAS_WIDTH, y],
+                    strokeColor: '#aaa',
+                    strokeWidth: 0.5
+                }).sendToBack();
+            }
+
+            paper.view.draw();
+        }
+
+        window.addEventListener('load', async () => {
+            paper.setup(document.getElementById('canvas'));
+
+            // Wait for fonts to load
+            await document.fonts.ready;
+
+            await loadFont();
+            await render();
+
+            document.getElementById('apply-size').addEventListener('click', async () => {
+                CANVAS_WIDTH = parseInt(document.getElementById('canvas-width').value) || 600;
+                CANVAS_HEIGHT = parseInt(document.getElementById('canvas-height').value) || 400;
+                await render();
+            });
+
+            // Handle dragging for canvas resize
+            const handles = document.querySelectorAll('.canvas-handle');
+            handles.forEach(handle => {
+                handle.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    const corner = handle.dataset.corner;
+                    const startX = e.clientX;
+                    const startY = e.clientY;
+                    const startWidth = CANVAS_WIDTH;
+                    const startHeight = CANVAS_HEIGHT;
+
+                    async function onMouseMove(e) {
+                        const deltaX = (e.clientX - startX) * 2; // *2 for center resize
+                        const deltaY = (e.clientY - startY) * 2;
+
+                        let newWidth = startWidth;
+                        let newHeight = startHeight;
+
+                        if (corner === 'br' || corner === 'tr') {
+                            newWidth = startWidth + deltaX;
+                        } else {
+                            newWidth = startWidth - deltaX;
+                        }
+
+                        if (corner === 'br' || corner === 'bl') {
+                            newHeight = startHeight + deltaY;
+                        } else {
+                            newHeight = startHeight - deltaY;
+                        }
+
+                        CANVAS_WIDTH = Math.max(200, newWidth);
+                        CANVAS_HEIGHT = Math.max(150, newHeight);
+
+                        document.getElementById('canvas-width').value = Math.round(CANVAS_WIDTH);
+                        document.getElementById('canvas-height').value = Math.round(CANVAS_HEIGHT);
+
+                        await render();
+                    }
+
+                    function onMouseUp() {
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                    }
+
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                });
+            });
+
+            // Drag and drop for sidebar items
+            function updateSidebar() {
+                const sidebar = document.getElementById('sidebar-list');
+                sidebar.innerHTML = '';
+                elements.forEach((el, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'sidebar-item';
+                    div.draggable = true;
+                    div.dataset.index = idx;
+                    if (el.type === 'A') div.textContent = `SPANNER: ${el.text}`;
+                    else if (el.type === 'B') div.textContent = `BLOCK: ${el.label}`;
+                    else if (el.type === 'C') div.textContent = `DATA (${el.rows.length} rows)`;
+
+                    div.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/html', idx);
+                        div.classList.add('dragging');
+                    });
+
+                    div.addEventListener('dragend', () => {
+                        div.classList.remove('dragging');
+                    });
+
+                    div.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        div.classList.add('drag-over');
+                    });
+
+                    div.addEventListener('dragleave', () => {
+                        div.classList.remove('drag-over');
+                    });
+
+                    div.addEventListener('drop', async (e) => {
+                        e.preventDefault();
+                        div.classList.remove('drag-over');
+                        const fromIdx = parseInt(e.dataTransfer.getData('text/html'));
+                        const toIdx = parseInt(div.dataset.index);
+
+                        if (fromIdx !== toIdx) {
+                            const item = elements.splice(fromIdx, 1)[0];
+                            elements.splice(toIdx, 0, item);
+                            updateSidebar();
+                            await render();
+                        }
+                    });
+
+                    sidebar.appendChild(div);
+                });
+            }
+
+            updateSidebar();
+        });
+    </script>
+</body>
+</html>

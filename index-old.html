@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Micrographic Engine</title>
+    <script src="https://cdn.jsdelivr.net/npm/opentype.js@latest/dist/opentype.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.17/paper-full.min.js"></script>
+    <style>
+        :root {
+            --grid-size: 10px;
+            --gutter: 10px;
+            --sidebar-width: 250px;
+            --bg-sidebar: #d4d4d4;
+            --bg-card: #ffffff;
+            --border-color: #000000;
+            --text-color: #000000;
+            --grid-line: #cccccc;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #000;
+            color: var(--text-color);
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            border: 2px solid var(--border-color);
+            box-sizing: border-box;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-sidebar);
+            border-right: 2px solid var(--border-color);
+            padding: 15px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            font-size: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0 0 15px 0;
+            border-bottom: 2px solid var(--border-color);
+            padding: 8px 0 5px 0;
+            background: #000;
+            color: #fff;
+            padding: 8px;
+        }
+
+        .sidebar-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .icon-preview {
+            width: 30px;
+            height: 30px;
+            margin-right: 12px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #eee;
+        }
+
+        .label-text {
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        /* Main Canvas Area */
+        .main-content {
+            flex-grow: 1;
+            background-color: #999;
+            padding: 20px;
+            box-sizing: border-box;
+            position: relative;
+            overflow: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #canvas {
+            display: block;
+            border: 2px solid var(--border-color);
+            background-color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .item-label {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 10px;
+            font-weight: bold;
+            text-anchor: middle;
+        }
+
+        /* Diagnostic Panel */
+        #diagnostic-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 180px;
+            background: white;
+            border: 2px solid black;
+            font-family: 'Courier New', Courier, monospace;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #diagnostic-panel header {
+            font-size: 9px;
+            font-weight: bold;
+            padding: 5px 8px;
+            border-bottom: 2px solid black;
+            text-transform: uppercase;
+            background: black;
+            color: white;
+        }
+
+        #diagnostic-panel .content {
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #diagnostic-panel .measure-area {
+            position: relative;
+            margin-bottom: 5px;
+            width: 100%;
+        }
+
+        #diagnostic-panel .stats {
+            font-size: 9px;
+            width: 100%;
+            text-align: left;
+            line-height: 1.4;
+        }
+
+        #apply-size:hover {
+            background: #333 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <h2>Canvas Size</h2>
+            <div style="padding: 10px; border-bottom: 2px solid #000; margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 8px;">
+                    WIDTH (px): <input type="number" id="canvas-width" value="600" style="width: 80px; padding: 4px; font-family: inherit; border: 1px solid #000;">
+                </label>
+                <label style="display: block; margin-bottom: 8px;">
+                    HEIGHT (px): <input type="number" id="canvas-height" value="400" style="width: 80px; padding: 4px; font-family: inherit; border: 1px solid #000;">
+                </label>
+                <button id="apply-size" style="width: 100%; padding: 8px; background: #000; color: #fff; border: 2px solid #000; font-family: inherit; cursor: pointer; font-weight: bold; font-size: 11px;">APPLY</button>
+            </div>
+            <h2>Elements</h2>
+            <div id="sidebar-list"></div>
+        </aside>
+        <main class="main-content">
+            <canvas id="canvas" resize></canvas>
+        </main>
+    </div>
+
+    <aside id="diagnostic-panel">
+        <header>Unit System</header>
+        <div class="content">
+            <div id="measure-svg-container" class="measure-area">
+                <!-- SVG measurement content will be injected here -->
+            </div>
+            <div class="stats">
+                <div id="diag-height">Height: --</div>
+                <div id="diag-1u">1U = --</div>
+            </div>
+        </div>
+    </aside>
+
+    <script>
+        const elements = [
+            // Type A: Spanner (full-width header)
+            { type: "A", text: "WARNING LABEL", fontSize: 1.2 },
+
+            // Type B: Block (existing icons)
+            { type: "B", icon: "square", label: "FIRE" },
+            { type: "B", icon: "circle", label: "INFO" },
+
+            // Type C: Data-Stream (specs table)
+            { type: "C", rows: [
+                { label: "VOLTAGE", value: "230V AC" },
+                { label: "FREQUENCY", value: "50/60Hz" },
+                { label: "MODEL", value: "XJ-2000" }
+            ]},
+
+            // More Type B blocks
+            { type: "B", icon: "triangle", label: "CAUTION" },
+            { type: "B", icon: "square", label: "SAFE" },
+            { type: "B", icon: "lightning", label: "HIGH VOLTAGE" },
+            { type: "B", icon: "skull", label: "TOXIC" }
+        ];
+
+        let BASE_UNIT = 10;
+        let UNIT = 10;
+        let GRID_SIZE = 10;
+        let GUTTER = 10;
+        let ICON_SIZE = 30;
+        let font = null;
+        let CANVAS_WIDTH = 600;
+        let CANVAS_HEIGHT = 400;
+
+        // Initialize Paper.js
+        paper.install(window);
+        window.addEventListener('load', () => {
+            paper.setup(document.getElementById('canvas'));
+        });
+
+        async function loadFont() {
+            try {
+                // Use CDN with direct TTF access
+                const fontUrl = 'https://cdn.jsdelivr.net/npm/@fontsource/roboto-mono@4.5.10/files/roboto-mono-latin-400-normal.woff';
+                const response = await fetch(fontUrl);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const arrayBuffer = await response.arrayBuffer();
+                font = opentype.parse(arrayBuffer);
+                console.log('Font loaded:', font);
+                return true;
+            } catch (err) {
+                console.error('Font load failed:', err);
+                return false;
+            }
+        }
+
+        function updateDiagnostic() {
+            const container = document.getElementById('measure-svg-container');
+            const heightEl = document.getElementById('diag-height');
+            const unitEl = document.getElementById('diag-1u');
+
+            let xHeightPx;
+            let sxHeight = 0;
+            let unitsPerEm = 1000;
+            const baseFontSize = 100;
+
+            if (font) {
+                unitsPerEm = font.unitsPerEm;
+                sxHeight = font.tables.os2.sxHeight;
+                const scale = baseFontSize / unitsPerEm;
+                xHeightPx = sxHeight * scale;
+            } else {
+                xHeightPx = baseFontSize * 0.5;
+            }
+
+            BASE_UNIT = xHeightPx;
+            UNIT = BASE_UNIT;
+            GRID_SIZE = UNIT;
+            GUTTER = UNIT * 0.5;
+            ICON_SIZE = UNIT * 2;
+
+            const svgNS = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("width", "100%");
+            svg.setAttribute("height", "100");
+
+            if (font) {
+                // Render using Opentype.js path (pixel-perfect to metrics)
+                const glyph = font.charToGlyph('x');
+                const baseline = 70;
+                const centerX = 90;
+                const renderSize = 80;
+                const path = glyph.getPath(centerX, baseline, renderSize);
+
+                // Convert Opentype.js path to SVG path
+                const pathElement = document.createElementNS(svgNS, "path");
+                pathElement.setAttribute("d", path.toPathData());
+                pathElement.setAttribute("fill", "black");
+                svg.appendChild(pathElement);
+
+                // Get glyph bounds for line positioning
+                const bbox = glyph.getBoundingBox();
+                const scale = renderSize / unitsPerEm;
+                const glyphWidth = (bbox.x2 - bbox.x1) * scale;
+                const leftEdge = centerX + (bbox.x1 * scale);
+                const rightEdge = centerX + (bbox.x2 * scale);
+
+                // Calculate x-height for THIS render size
+                const displayXHeight = sxHeight * scale;
+
+                // Draw red lines using FONT METRICS
+                const topY = baseline - displayXHeight;
+                const bottomY = baseline;
+
+                const topLine = document.createElementNS(svgNS, "line");
+                topLine.setAttribute("x1", leftEdge);
+                topLine.setAttribute("y1", topY);
+                topLine.setAttribute("x2", rightEdge);
+                topLine.setAttribute("y2", topY);
+                topLine.setAttribute("stroke", "red");
+                topLine.setAttribute("stroke-width", "2");
+
+                const bottomLine = document.createElementNS(svgNS, "line");
+                bottomLine.setAttribute("x1", leftEdge);
+                bottomLine.setAttribute("y1", bottomY);
+                bottomLine.setAttribute("x2", rightEdge);
+                bottomLine.setAttribute("y2", bottomY);
+                bottomLine.setAttribute("stroke", "red");
+                bottomLine.setAttribute("stroke-width", "2");
+
+                svg.appendChild(topLine);
+                svg.appendChild(bottomLine);
+
+                // Set viewBox to show the glyph
+                svg.setAttribute("viewBox", `0 0 180 100`);
+
+            } else {
+                // Fallback: show text warning
+                const text = document.createElementNS(svgNS, "text");
+                text.setAttribute("x", "90");
+                text.setAttribute("y", "50");
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("font-size", "10");
+                text.textContent = "Loading...";
+                svg.appendChild(text);
+                svg.setAttribute("viewBox", "0 0 180 100");
+            }
+
+            container.innerHTML = '';
+            container.appendChild(svg);
+
+            // Update stats
+            heightEl.innerHTML = `x-Height: ${xHeightPx.toFixed(1)}px<br>
+                                 <small style="font-size:7px">sx: ${sxHeight} / em: ${unitsPerEm}</small>`;
+            unitEl.textContent = `1U = ${xHeightPx.toFixed(1)}px`;
+
+            document.documentElement.style.setProperty('--grid-size', `${GRID_SIZE}px`);
+        }
+
+        function createIcon(type, size, position) {
+            const group = new paper.Group();
+            const strokeWidth = size * 0.08;
+
+            switch(type) {
+                case 'square':
+                    const square = new paper.Path.Rectangle({
+                        point: [0, 0],
+                        size: [size, size],
+                        strokeColor: 'black',
+                        strokeWidth: strokeWidth
+                    });
+                    group.addChild(square);
+                    break;
+
+                case 'triangle':
+                    const triangle = new paper.Path({
+                        segments: [
+                            [size/2, 0],
+                            [0, size],
+                            [size, size]
+                        ],
+                        closed: true,
+                        strokeColor: 'black',
+                        strokeWidth: strokeWidth
+                    });
+                    group.addChild(triangle);
+                    break;
+
+                case 'circle':
+                    const circle = new paper.Path.Circle({
+                        center: [size/2, size/2],
+                        radius: size/2,
+                        strokeColor: 'black',
+                        strokeWidth: strokeWidth
+                    });
+                    group.addChild(circle);
+                    break;
+
+                case 'lightning':
+                    const lightning = new paper.Path({
+                        segments: [
+                            [size*0.6, 0],
+                            [size*0.1, size*0.6],
+                            [size*0.5, size*0.6],
+                            [size*0.4, size],
+                            [size*0.9, size*0.4],
+                            [size*0.5, size*0.4]
+                        ],
+                        closed: true,
+                        strokeColor: 'black',
+                        strokeWidth: strokeWidth
+                    });
+                    group.addChild(lightning);
+                    break;
+
+                case 'skull':
+                    const head = new paper.Path.Circle({
+                        center: [size*0.5, size*0.35],
+                        radius: size*0.25,
+                        strokeColor: 'black',
+                        strokeWidth: strokeWidth
+                    });
+                    const jaw = new paper.Path.Rectangle({
+                        point: [size*0.3, size*0.55],
+                        size: [size*0.4, size*0.3],
+                        strokeColor: 'black',
+                        strokeWidth: strokeWidth
+                    });
+                    const eye1 = new paper.Path.Circle({
+                        center: [size*0.38, size*0.32],
+                        radius: size*0.06,
+                        fillColor: 'black'
+                    });
+                    const eye2 = new paper.Path.Circle({
+                        center: [size*0.62, size*0.32],
+                        radius: size*0.06,
+                        fillColor: 'black'
+                    });
+                    group.addChildren([head, jaw, eye1, eye2]);
+                    break;
+            }
+
+            group.position = position;
+            return group;
+        }
+
+        // Keep old version for sidebar preview
+        function getIconSVG(type, size = 30) {
+            const strokeWidth = size * 0.08;
+            let shape = '';
+            switch(type) {
+                case 'square':
+                    shape = `<rect x="${strokeWidth/2}" y="${strokeWidth/2}" width="${size-strokeWidth}" height="${size-strokeWidth}" fill="none" stroke="black" stroke-width="${strokeWidth}" />`;
+                    break;
+                case 'triangle':
+                    shape = `<polygon points="${size/2},${strokeWidth} ${strokeWidth},${size-strokeWidth} ${size-strokeWidth},${size-strokeWidth}" fill="none" stroke="black" stroke-width="${strokeWidth}" />`;
+                    break;
+                case 'circle':
+                    shape = `<circle cx="${size/2}" cy="${size/2}" r="${(size-strokeWidth)/2}" fill="none" stroke="black" stroke-width="${strokeWidth}" />`;
+                    break;
+                case 'lightning':
+                    shape = `<path d="M ${size*0.6} ${strokeWidth} L ${size*0.1} ${size*0.6} L ${size*0.5} ${size*0.6} L ${size*0.4} ${size-strokeWidth} L ${size*0.9} ${size*0.4} L ${size*0.5} ${size*0.4} Z" fill="none" stroke="black" stroke-width="${strokeWidth}" />`;
+                    break;
+                case 'skull':
+                    shape = `
+                        <circle cx="${size*0.5}" cy="${size*0.35}" r="${size*0.25}" fill="none" stroke="black" stroke-width="${strokeWidth}" />
+                        <rect x="${size*0.3}" y="${size*0.55}" width="${size*0.4}" height="${size*0.3}" fill="none" stroke="black" stroke-width="${strokeWidth}" />
+                        <circle cx="${size*0.38}" cy="${size*0.32}" r="${size*0.06}" fill="black" />
+                        <circle cx="${size*0.62}" cy="${size*0.32}" r="${size*0.06}" fill="black" />
+                    `;
+                    break;
+            }
+            return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${shape}</svg>`;
+        }
+
+        function measureText(text, fontSize) {
+            const tempText = new paper.PointText({
+                content: text,
+                fontFamily: 'Courier New',
+                fontSize: fontSize
+            });
+            const bounds = tempText.bounds;
+            tempText.remove();
+            return bounds;
+        }
+
+        function measureTableWidth(element) {
+            let maxLabelWidth = 0;
+            let maxValueWidth = 0;
+
+            element.rows.forEach(row => {
+                const labelBounds = measureText(row.label, UNIT * 0.8);
+                const valueBounds = measureText(row.value, UNIT * 0.8);
+                maxLabelWidth = Math.max(maxLabelWidth, labelBounds.width);
+                maxValueWidth = Math.max(maxValueWidth, valueBounds.width);
+            });
+
+            const totalWidth = maxLabelWidth + GUTTER + maxValueWidth;
+            return {
+                total: Math.round(totalWidth / GRID_SIZE) * GRID_SIZE,
+                labelWidth: maxLabelWidth,
+                valueWidth: maxValueWidth
+            };
+        }
+
+        function renderContent(canvasWidth) {
+            let cursorX = GUTTER;
+            let cursorY = GUTTER;
+            let maxRowHeight = 0;
+
+            elements.forEach(element => {
+                if (element.type === 'A') {
+                    if (cursorX > GUTTER) {
+                        cursorX = GUTTER;
+                        cursorY += maxRowHeight + GUTTER;
+                        cursorY = Math.round(cursorY / GRID_SIZE) * GRID_SIZE;
+                    }
+
+                    const textEl = document.createElementNS(svgNS, "text");
+                    textEl.setAttribute("x", canvasWidth / 2);
+                    textEl.setAttribute("y", cursorY + (element.fontSize * UNIT * 0.8));
+                    textEl.setAttribute("font-family", "Courier New, monospace");
+                    textEl.setAttribute("font-size", element.fontSize * UNIT);
+                    textEl.setAttribute("font-weight", "bold");
+                    textEl.setAttribute("text-anchor", "middle");
+                    textEl.textContent = element.text;
+                    itemsLayer.appendChild(textEl);
+
+                    cursorY += (element.fontSize * UNIT) + GUTTER;
+                    cursorY = Math.round(cursorY / GRID_SIZE) * GRID_SIZE;
+                    cursorX = GUTTER;
+                    maxRowHeight = 0;
+
+                } else if (element.type === 'B') {
+                    const g = document.createElementNS(svgNS, "g");
+                    const text = document.createElementNS(svgNS, "text");
+                    text.setAttribute("class", "item-label");
+                    text.setAttribute("font-family", "Courier New, monospace");
+                    text.setAttribute("font-size", UNIT * 0.6);
+                    text.setAttribute("y", ICON_SIZE + UNIT * 0.8);
+                    text.textContent = element.label;
+                    const iconG = document.createElementNS(svgNS, "g");
+                    iconG.innerHTML = getIconSVG(element.icon, ICON_SIZE);
+                    g.appendChild(iconG);
+                    g.appendChild(text);
+                    itemsLayer.appendChild(g);
+
+                    const bbox = g.getBBox();
+                    const itemWidth = Math.round(bbox.width / GRID_SIZE) * GRID_SIZE;
+                    const itemHeight = Math.round(bbox.height / GRID_SIZE) * GRID_SIZE;
+
+                    if (cursorX + itemWidth > canvasWidth) {
+                        cursorX = GUTTER;
+                        cursorY += maxRowHeight + GUTTER;
+                        cursorY = Math.round(cursorY / GRID_SIZE) * GRID_SIZE;
+                        maxRowHeight = 0;
+                    }
+
+                    const snapX = Math.round(cursorX / GRID_SIZE) * GRID_SIZE;
+                    const snapY = Math.round(cursorY / GRID_SIZE) * GRID_SIZE;
+                    g.setAttribute("transform", `translate(${snapX}, ${snapY})`);
+                    text.setAttribute("x", ICON_SIZE / 2);
+
+                    cursorX = snapX + itemWidth + GUTTER;
+                    maxRowHeight = Math.max(maxRowHeight, itemHeight);
+
+                } else if (element.type === 'C') {
+                    const tableMeasure = measureTableWidth(element);
+                    const rowHeight = UNIT * 1.2;
+                    const tableHeight = element.rows.length * rowHeight;
+
+                    if (cursorX + tableMeasure.total > canvasWidth) {
+                        cursorX = GUTTER;
+                        cursorY += maxRowHeight + GUTTER;
+                        cursorY = Math.round(cursorY / GRID_SIZE) * GRID_SIZE;
+                        maxRowHeight = 0;
+                    }
+
+                    const g = document.createElementNS(svgNS, "g");
+                    const snapX = Math.round(cursorX / GRID_SIZE) * GRID_SIZE;
+                    const snapY = Math.round(cursorY / GRID_SIZE) * GRID_SIZE;
+                    g.setAttribute("transform", `translate(${snapX}, ${snapY})`);
+                    itemsLayer.appendChild(g);
+
+                    const labelX = tableMeasure.labelWidth;
+                    const valueX = labelX + GUTTER;
+
+                    element.rows.forEach((row, i) => {
+                        const y = (i + 1) * rowHeight;
+                        const label = document.createElementNS(svgNS, "text");
+                        label.setAttribute("x", labelX);
+                        label.setAttribute("y", y);
+                        label.setAttribute("text-anchor", "end");
+                        label.setAttribute("font-family", "Courier New, monospace");
+                        label.setAttribute("font-size", UNIT * 0.8);
+                        label.textContent = row.label;
+                        const value = document.createElementNS(svgNS, "text");
+                        value.setAttribute("x", valueX);
+                        value.setAttribute("y", y);
+                        value.setAttribute("text-anchor", "start");
+                        value.setAttribute("font-family", "Courier New, monospace");
+                        value.setAttribute("font-size", UNIT * 0.8);
+                        value.textContent = row.value;
+                        g.appendChild(label);
+                        g.appendChild(value);
+                    });
+
+                    cursorX = snapX + tableMeasure.total + GUTTER;
+                    maxRowHeight = Math.max(maxRowHeight, tableHeight);
+                }
+            });
+
+            return {
+                width: canvasWidth,
+                height: cursorY + maxRowHeight + GUTTER
+            };
+        }
+
+        async function init() {
+            const sidebarList = document.getElementById('sidebar-list');
+            const itemsLayer = document.getElementById('items-layer');
+            const svg = document.getElementById('canvas-svg');
+            const main = svg.parentElement;
+            const svgNS = "http://www.w3.org/2000/svg";
+            
+            await loadFont();
+            updateDiagnostic();
+            
+            // Populate Sidebar
+            sidebarList.innerHTML = '';
+            elements.forEach(el => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'sidebar-item';
+                if (el.type === 'A') {
+                    itemDiv.innerHTML = `<div class="label-text">SPANNER: ${el.text}</div>`;
+                } else if (el.type === 'B') {
+                    itemDiv.innerHTML = `
+                        <div class="icon-preview">${getIconSVG(el.icon, 30)}</div>
+                        <div class="label-text">${el.label}</div>
+                    `;
+                } else if (el.type === 'C') {
+                    itemDiv.innerHTML = `<div class="label-text">DATA-STREAM (${el.rows.length} rows)</div>`;
+                }
+                sidebarList.appendChild(itemDiv);
+            });
+
+            // Set canvas size
+            svg.setAttribute("width", CANVAS_WIDTH);
+            svg.setAttribute("height", CANVAS_HEIGHT);
+            svg.style.width = CANVAS_WIDTH + "px";
+            svg.style.height = CANVAS_HEIGHT + "px";
+
+            // PASS 1: Measure content at base UNIT
+            UNIT = BASE_UNIT;
+            GRID_SIZE = UNIT;
+            GUTTER = UNIT * 0.5;
+            ICON_SIZE = UNIT * 2;
+
+            const tempLayer = document.createElementNS(svgNS, "g");
+            tempLayer.setAttribute("visibility", "hidden");
+            svg.appendChild(tempLayer);
+
+            const bounds = renderContent(tempLayer, svgNS, CANVAS_WIDTH);
+            svg.removeChild(tempLayer);
+
+            // PASS 2: Calculate scale to fit
+            const scaleX = CANVAS_WIDTH / bounds.width;
+            const scaleY = CANVAS_HEIGHT / bounds.height;
+            const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+
+            // Apply scale to UNIT
+            UNIT = BASE_UNIT * scale;
+            GRID_SIZE = UNIT;
+            GUTTER = UNIT * 0.5;
+            ICON_SIZE = UNIT * 2;
+
+            // Update grid background
+            document.documentElement.style.setProperty('--grid-size', `${GRID_SIZE}px`);
+
+            // PASS 3: Render at scaled UNIT
+            itemsLayer.innerHTML = '';
+            const finalBounds = renderContent(itemsLayer, svgNS, CANVAS_WIDTH);
+
+            // Center content (finalBounds already at scaled size)
+            const offsetX = (CANVAS_WIDTH - finalBounds.width) / 2;
+            const offsetY = (CANVAS_HEIGHT - finalBounds.height) / 2;
+            itemsLayer.setAttribute("transform", `translate(${offsetX}, ${offsetY})`);
+        }
+
+        window.addEventListener('load', init);
+
+        document.getElementById('apply-size').addEventListener('click', () => {
+            CANVAS_WIDTH = parseInt(document.getElementById('canvas-width').value) || 600;
+            CANVAS_HEIGHT = parseInt(document.getElementById('canvas-height').value) || 400;
+            document.getElementById('items-layer').innerHTML = '';
+            const sidebarList = document.getElementById('sidebar-list');
+            const itemsLayer = document.getElementById('items-layer');
+            const svg = document.getElementById('canvas-svg');
+            const svgNS = "http://www.w3.org/2000/svg";
+
+            // Re-render with new canvas size
+            svg.setAttribute("width", CANVAS_WIDTH);
+            svg.setAttribute("height", CANVAS_HEIGHT);
+            svg.style.width = CANVAS_WIDTH + "px";
+            svg.style.height = CANVAS_HEIGHT + "px";
+
+            UNIT = BASE_UNIT;
+            GRID_SIZE = UNIT;
+            GUTTER = UNIT * 0.5;
+            ICON_SIZE = UNIT * 2;
+
+            const tempLayer = document.createElementNS(svgNS, "g");
+            tempLayer.setAttribute("visibility", "hidden");
+            svg.appendChild(tempLayer);
+
+            const bounds = renderContent(tempLayer, svgNS, CANVAS_WIDTH);
+            svg.removeChild(tempLayer);
+
+            const scaleX = CANVAS_WIDTH / bounds.width;
+            const scaleY = CANVAS_HEIGHT / bounds.height;
+            const scale = Math.min(scaleX, scaleY, 1);
+
+            UNIT = BASE_UNIT * scale;
+            GRID_SIZE = UNIT;
+            GUTTER = UNIT * 0.5;
+            ICON_SIZE = UNIT * 2;
+
+            document.documentElement.style.setProperty('--grid-size', `${GRID_SIZE}px`);
+
+            itemsLayer.innerHTML = '';
+            const finalBounds = renderContent(itemsLayer, svgNS, CANVAS_WIDTH);
+
+            const offsetX = (CANVAS_WIDTH - finalBounds.width) / 2;
+            const offsetY = (CANVAS_HEIGHT - finalBounds.height) / 2;
+            itemsLayer.setAttribute("transform", `translate(${offsetX}, ${offsetY})`);
+        });
+    </script>
+</body>
+</html>
