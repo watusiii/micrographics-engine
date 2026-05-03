@@ -48,64 +48,95 @@
             background: #d4d4d4;
             border-right: 2px solid #000;
             border-bottom: 2px solid #000;
-            padding: 15px;
-            overflow-y: auto;
-        }
-
-        .sidebar h2 {
-            font-size: 12px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin: 0 0 15px 0;
-            background: #000;
-            color: #fff;
-            padding: 8px;
-        }
-
-        .canvas-controls {
             padding: 10px;
-            border-bottom: 2px solid #000;
-            margin-bottom: 15px;
+            overflow-y: auto;
+            line-height: 1.2;
         }
 
-        .canvas-controls label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 10px;
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
         }
 
-        .canvas-controls input {
-            width: 80px;
-            padding: 4px;
-            font-family: inherit;
-            border: 1px solid #000;
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
         }
 
-        .canvas-controls button {
-            width: 100%;
-            padding: 8px;
+        .sidebar::-webkit-scrollbar-thumb {
             background: #000;
-            color: #fff;
-            border: 2px solid #000;
-            font-family: inherit;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 11px;
         }
 
-        .canvas-controls button:hover {
+        .sidebar::-webkit-scrollbar-thumb:hover {
             background: #333;
         }
 
-        .sidebar-item {
-            background: #fff;
-            border: 1px solid #000;
-            padding: 8px;
+        .sidebar h2 {
+            font-size: 20px;
+            font-weight: 900;
+            margin: 0 0 8px 0;
+            background: transparent;
+            color: #000;
+            padding: 0;
+        }
+
+        .canvas-controls {
             margin-bottom: 10px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 10px;
+        }
+
+        .size-inputs {
             display: flex;
             align-items: center;
-            font-size: 11px;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .size-inputs input {
+            width: 60px;
+            padding: 0;
+            font-family: inherit;
+            border: none;
+            background: transparent;
+            font-size: 24px;
+            font-weight: 400;
+        }
+
+        /* Hide number input spinners */
+        .size-inputs input[type=number]::-webkit-inner-spin-button,
+        .size-inputs input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .size-inputs input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        .size-inputs .x {
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .grid-toggle {
+            font-size: 9px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .grid-toggle input {
+            width: auto;
+            margin-right: 6px;
+            font-size: inherit;
+        }
+
+        .sidebar-item {
+            background: transparent;
+            border: 1px solid #000;
+            padding: 6px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            font-size: 10px;
             cursor: move;
             user-select: none;
         }
@@ -116,6 +147,27 @@
 
         .sidebar-item.drag-over {
             border-top: 3px solid #000;
+        }
+
+        .sidebar-item.selected {
+            background: #000;
+            color: #fff;
+        }
+
+        .add-button {
+            background: none;
+            border: none;
+            padding: 4px;
+            margin-bottom: 6px;
+            font-size: 20px;
+            cursor: pointer;
+            text-align: left;
+            width: 100%;
+            font-weight: bold;
+        }
+
+        .add-button:hover {
+            background: rgba(0,0,0,0.1);
         }
 
         .main-content {
@@ -139,6 +191,98 @@
             height: 200px;
             min-height: 200px;
             max-height: 200px;
+            display: flex;
+        }
+
+        #edit-panel {
+            flex: 1;
+            background: #d4d4d4;
+            border-right: 2px solid #000;
+            padding: 15px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        #edit-panel.visible {
+            display: block;
+        }
+
+        #edit-panel h3 {
+            font-size: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0 0 15px 0;
+            background: #000;
+            color: #fff;
+            padding: 8px;
+        }
+
+        #edit-panel label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        #edit-panel input,
+        #edit-panel select,
+        #edit-panel textarea {
+            width: 100%;
+            padding: 6px;
+            font-family: inherit;
+            border: 1px solid #000;
+            background: transparent;
+            margin-bottom: 10px;
+            font-size: 11px;
+        }
+
+        #edit-panel button {
+            padding: 8px 16px;
+            background: #000;
+            color: #fff;
+            border: 2px solid #000;
+            font-family: inherit;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+            margin-right: 8px;
+        }
+
+        #edit-panel button:hover {
+            background: #333;
+        }
+
+        #edit-panel button.danger {
+            background: #fff;
+            color: #000;
+        }
+
+        #edit-panel button.danger:hover {
+            background: #f00;
+            color: #fff;
+            border-color: #f00;
+        }
+
+        .table-rows {
+            margin-bottom: 10px;
+        }
+
+        .table-row-item {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .table-row-item input {
+            margin-bottom: 0;
+        }
+
+        .table-row-item button {
+            margin: 0;
+            padding: 4px 8px;
+            font-size: 16px;
         }
 
         #canvas {
@@ -218,13 +362,19 @@
 <body>
     <div class="container">
         <aside class="sidebar">
-            <h2>Canvas Size</h2>
+            <h2>S</h2>
             <div class="canvas-controls">
-                <label>WIDTH (px): <input type="number" id="canvas-width" value="600"></label>
-                <label>HEIGHT (px): <input type="number" id="canvas-height" value="400"></label>
-                <button id="apply-size">APPLY</button>
+                <div class="size-inputs">
+                    <input type="number" id="canvas-width" value="600">
+                    <span class="x">×</span>
+                    <input type="number" id="canvas-height" value="400">
+                </div>
+                <label class="grid-toggle">
+                    <input type="checkbox" id="grid-toggle" checked> GRID
+                </label>
             </div>
-            <h2>Elements</h2>
+            <h2>E</h2>
+            <button class="add-button" id="add-element">+</button>
             <div id="sidebar-list"></div>
         </aside>
         <main class="main-content">
@@ -237,6 +387,10 @@
             </div>
         </main>
         <div class="bottom-section">
+            <div id="edit-panel">
+                <h3>Edit Element</h3>
+                <div id="edit-form"></div>
+            </div>
             <aside id="diagnostic-panel">
                 <header>Unit System</header>
                 <div class="content">
@@ -253,17 +407,17 @@
     <script>
         let elements = [
             { type: "A", text: "WARNING LABEL", fontSize: 1.2 },
-            { type: "B", icon: "square", label: "FIRE" },
-            { type: "B", icon: "circle", label: "INFO" },
+            { type: "B", icon: "svg", svgPath: "logos/tag2.svg", label: "TAG" },
+            { type: "B", icon: "svg", svgPath: "logos/extendo.svg", label: "EXTENDO" },
             { type: "C", rows: [
                 { label: "VOLTAGE", value: "230V AC" },
                 { label: "FREQUENCY", value: "50/60Hz" },
                 { label: "MODEL", value: "XJ-2000" }
             ]},
-            { type: "B", icon: "triangle", label: "CAUTION" },
-            { type: "B", icon: "square", label: "SAFE" },
-            { type: "B", icon: "svg", svgPath: "logos/extendo.svg", label: "EXTENDO" },
-            { type: "B", icon: "svg", svgPath: "logos/extendo_nes.svg", label: "EXTENDO NES" }
+            { type: "B", icon: "svg", svgPath: "logos/extendo_nes.svg", label: "EXTENDO NES" },
+            { type: "B", icon: "svg", svgPath: "logos/pattern1.svg", label: "PATTERN 1" },
+            { type: "B", icon: "svg", svgPath: "logos/pattern2.svg", label: "PATTERN 2" },
+            { type: "B", icon: "svg", svgPath: "logos/pattern3.svg", label: "PATTERN 3" }
         ];
 
         let BASE_UNIT = 50;
@@ -276,6 +430,8 @@
         let font = null;
         let svgCache = {};
         let FONT_NAME = 'Roboto Mono';
+        let selectedElementIndex = null;
+        let showGrid = true;
 
         async function loadSVG(path) {
             if (svgCache[path]) return svgCache[path];
@@ -346,16 +502,18 @@
             topLine.setAttribute("y1", topY);
             topLine.setAttribute("x2", rightEdge);
             topLine.setAttribute("y2", topY);
-            topLine.setAttribute("stroke", "red");
-            topLine.setAttribute("stroke-width", "2");
+            topLine.setAttribute("stroke", "black");
+            topLine.setAttribute("stroke-width", "1");
+            topLine.setAttribute("stroke-dasharray", "2,2");
 
             const bottomLine = document.createElementNS(svgNS, "line");
             bottomLine.setAttribute("x1", leftEdge);
             bottomLine.setAttribute("y1", bottomY);
             bottomLine.setAttribute("x2", rightEdge);
             bottomLine.setAttribute("y2", bottomY);
-            bottomLine.setAttribute("stroke", "red");
-            bottomLine.setAttribute("stroke-width", "2");
+            bottomLine.setAttribute("stroke", "black");
+            bottomLine.setAttribute("stroke-width", "1");
+            bottomLine.setAttribute("stroke-dasharray", "2,2");
 
             svg.appendChild(topLine);
             svg.appendChild(bottomLine);
@@ -373,7 +531,32 @@
                 const svgData = await loadSVG(svgPath);
                 if (svgData) {
                     const imported = paper.project.importSVG(svgData);
-                    imported.scale(size / Math.max(imported.bounds.width, imported.bounds.height));
+
+                    // Detect aspect ratio and calculate target dimensions
+                    const naturalWidth = imported.bounds.width;
+                    const naturalHeight = imported.bounds.height;
+                    const aspectRatio = naturalWidth / naturalHeight;
+
+                    let targetWidth, targetHeight;
+
+                    if (aspectRatio > 2) {
+                        // Wide logo: 4U x 1U or 3U x 1U
+                        const gridUnits = aspectRatio > 3 ? 4 : 3;
+                        targetWidth = size * gridUnits / 2;  // size is 2U base
+                        targetHeight = targetWidth / aspectRatio;
+                    } else if (aspectRatio < 0.5) {
+                        // Tall logo: 1U x 3U or 1U x 4U
+                        const gridUnits = aspectRatio < 0.33 ? 4 : 3;
+                        targetHeight = size * gridUnits / 2;
+                        targetWidth = targetHeight * aspectRatio;
+                    } else {
+                        // Square-ish: keep original behavior
+                        const maxDim = Math.max(naturalWidth, naturalHeight);
+                        targetWidth = (naturalWidth / maxDim) * size;
+                        targetHeight = (naturalHeight / maxDim) * size;
+                    }
+
+                    imported.scale(targetWidth / naturalWidth);
                     group.addChild(imported);
                 }
                 return group;
@@ -548,21 +731,23 @@
             paper.project.activeLayer.position = paper.project.activeLayer.position.add(new paper.Point(offsetX, offsetY));
 
             // Draw grid
-            for (let x = 0; x < CANVAS_WIDTH; x += GRID_SIZE) {
-                new paper.Path.Line({
-                    from: [x, 0],
-                    to: [x, CANVAS_HEIGHT],
-                    strokeColor: '#aaa',
-                    strokeWidth: 0.5
-                }).sendToBack();
-            }
-            for (let y = 0; y < CANVAS_HEIGHT; y += GRID_SIZE) {
-                new paper.Path.Line({
-                    from: [0, y],
-                    to: [CANVAS_WIDTH, y],
-                    strokeColor: '#aaa',
-                    strokeWidth: 0.5
-                }).sendToBack();
+            if (showGrid) {
+                for (let x = 0; x < CANVAS_WIDTH; x += GRID_SIZE) {
+                    new paper.Path.Line({
+                        from: [x, 0],
+                        to: [x, CANVAS_HEIGHT],
+                        strokeColor: '#aaa',
+                        strokeWidth: 0.5
+                    }).sendToBack();
+                }
+                for (let y = 0; y < CANVAS_HEIGHT; y += GRID_SIZE) {
+                    new paper.Path.Line({
+                        from: [0, y],
+                        to: [CANVAS_WIDTH, y],
+                        strokeColor: '#aaa',
+                        strokeWidth: 0.5
+                    }).sendToBack();
+                }
             }
 
             paper.view.draw();
@@ -577,9 +762,20 @@
             await loadFont();
             await render();
 
-            document.getElementById('apply-size').addEventListener('click', async () => {
-                CANVAS_WIDTH = parseInt(document.getElementById('canvas-width').value) || 600;
-                CANVAS_HEIGHT = parseInt(document.getElementById('canvas-height').value) || 400;
+            // Auto-apply canvas size on input change
+            document.getElementById('canvas-width').addEventListener('change', async (e) => {
+                CANVAS_WIDTH = parseInt(e.target.value) || 600;
+                await render();
+            });
+
+            document.getElementById('canvas-height').addEventListener('change', async (e) => {
+                CANVAS_HEIGHT = parseInt(e.target.value) || 400;
+                await render();
+            });
+
+            // Grid toggle
+            document.getElementById('grid-toggle').addEventListener('change', async (e) => {
+                showGrid = e.target.checked;
                 await render();
             });
 
@@ -679,11 +875,174 @@
                         }
                     });
 
+                    div.addEventListener('click', () => {
+                        showEditPanel(idx);
+                    });
+
                     sidebar.appendChild(div);
                 });
             }
 
             updateSidebar();
+
+            // Edit panel functions
+            function showEditPanel(index) {
+                selectedElementIndex = index;
+                const element = elements[index];
+                const panel = document.getElementById('edit-panel');
+                const form = document.getElementById('edit-form');
+
+                panel.classList.add('visible');
+
+                let html = '';
+
+                // Type selector
+                html += `<label>TYPE:
+                    <select id="edit-type">
+                        <option value="A" ${element.type === 'A' ? 'selected' : ''}>A - SPANNER</option>
+                        <option value="B" ${element.type === 'B' ? 'selected' : ''}>B - BLOCK</option>
+                        <option value="C" ${element.type === 'C' ? 'selected' : ''}>C - DATA</option>
+                    </select>
+                </label>`;
+
+                // Type-specific fields
+                if (element.type === 'A') {
+                    html += `
+                        <label>TEXT:
+                            <input type="text" id="edit-text" value="${element.text || ''}">
+                        </label>
+                        <label>FONT SIZE (units):
+                            <input type="number" id="edit-fontsize" value="${element.fontSize || 1.2}" step="0.1">
+                        </label>
+                    `;
+                } else if (element.type === 'B') {
+                    html += `
+                        <label>ICON:
+                            <select id="edit-icon">
+                                <option value="square" ${element.icon === 'square' ? 'selected' : ''}>Square</option>
+                                <option value="circle" ${element.icon === 'circle' ? 'selected' : ''}>Circle</option>
+                                <option value="triangle" ${element.icon === 'triangle' ? 'selected' : ''}>Triangle</option>
+                                <option value="lightning" ${element.icon === 'lightning' ? 'selected' : ''}>Lightning</option>
+                                <option value="skull" ${element.icon === 'skull' ? 'selected' : ''}>Skull</option>
+                                <option value="svg" ${element.icon === 'svg' ? 'selected' : ''}>SVG File</option>
+                            </select>
+                        </label>
+                        <label>LABEL:
+                            <input type="text" id="edit-label" value="${element.label || ''}">
+                        </label>
+                        <label id="svg-path-label" style="display: ${element.icon === 'svg' ? 'block' : 'none'}">SVG PATH:
+                            <input type="text" id="edit-svgpath" value="${element.svgPath || ''}">
+                        </label>
+                    `;
+                } else if (element.type === 'C') {
+                    html += `<label>TABLE ROWS:</label><div class="table-rows" id="table-rows">`;
+                    element.rows.forEach((row, i) => {
+                        html += `
+                            <div class="table-row-item">
+                                <input type="text" placeholder="Label" value="${row.label}" data-row="${i}" data-field="label" style="flex: 1">
+                                <input type="text" placeholder="Value" value="${row.value}" data-row="${i}" data-field="value" style="flex: 1">
+                                <button class="danger" onclick="deleteRow(${i})">×</button>
+                            </div>
+                        `;
+                    });
+                    html += `</div>
+                        <button onclick="addRow()">+ ADD ROW</button>
+                    `;
+                }
+
+                html += `
+                    <div style="margin-top: 15px;">
+                        <button onclick="saveElement()">SAVE</button>
+                        <button class="danger" onclick="deleteElement()">DELETE</button>
+                    </div>
+                `;
+
+                form.innerHTML = html;
+
+                // Add event listeners
+                document.getElementById('edit-type')?.addEventListener('change', (e) => {
+                    const newType = e.target.value;
+                    const el = elements[selectedElementIndex];
+
+                    if (newType === 'A') {
+                        elements[selectedElementIndex] = { type: 'A', text: 'NEW HEADER', fontSize: 1.2 };
+                    } else if (newType === 'B') {
+                        elements[selectedElementIndex] = { type: 'B', icon: 'square', label: 'NEW BLOCK' };
+                    } else if (newType === 'C') {
+                        elements[selectedElementIndex] = { type: 'C', rows: [{ label: 'LABEL', value: 'VALUE' }] };
+                    }
+
+                    showEditPanel(selectedElementIndex);
+                });
+
+                document.getElementById('edit-icon')?.addEventListener('change', (e) => {
+                    const svgLabel = document.getElementById('svg-path-label');
+                    svgLabel.style.display = e.target.value === 'svg' ? 'block' : 'none';
+                });
+
+                // Update sidebar selection
+                document.querySelectorAll('.sidebar-item').forEach((item, i) => {
+                    item.classList.toggle('selected', i === index);
+                });
+            }
+
+            window.saveElement = async function() {
+                const element = elements[selectedElementIndex];
+
+                if (element.type === 'A') {
+                    element.text = document.getElementById('edit-text').value;
+                    element.fontSize = parseFloat(document.getElementById('edit-fontsize').value);
+                } else if (element.type === 'B') {
+                    element.icon = document.getElementById('edit-icon').value;
+                    element.label = document.getElementById('edit-label').value;
+                    if (element.icon === 'svg') {
+                        element.svgPath = document.getElementById('edit-svgpath').value;
+                    } else {
+                        delete element.svgPath;
+                    }
+                } else if (element.type === 'C') {
+                    const rows = [];
+                    document.querySelectorAll('.table-row-item').forEach(item => {
+                        const inputs = item.querySelectorAll('input');
+                        rows.push({
+                            label: inputs[0].value,
+                            value: inputs[1].value
+                        });
+                    });
+                    element.rows = rows;
+                }
+
+                updateSidebar();
+                await render();
+            };
+
+            window.deleteElement = async function() {
+                if (confirm('Delete this element?')) {
+                    elements.splice(selectedElementIndex, 1);
+                    selectedElementIndex = null;
+                    document.getElementById('edit-panel').classList.remove('visible');
+                    updateSidebar();
+                    await render();
+                }
+            };
+
+            window.addRow = function() {
+                const element = elements[selectedElementIndex];
+                element.rows.push({ label: 'NEW LABEL', value: 'NEW VALUE' });
+                showEditPanel(selectedElementIndex);
+            };
+
+            window.deleteRow = function(rowIndex) {
+                const element = elements[selectedElementIndex];
+                element.rows.splice(rowIndex, 1);
+                showEditPanel(selectedElementIndex);
+            };
+
+            document.getElementById('add-element').addEventListener('click', () => {
+                elements.push({ type: 'A', text: 'NEW ELEMENT', fontSize: 1.2 });
+                updateSidebar();
+                showEditPanel(elements.length - 1);
+            });
         });
     </script>
 </body>
