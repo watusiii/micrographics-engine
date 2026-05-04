@@ -129,6 +129,30 @@
             margin: 0;
         }
 
+        .font-upload {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #000;
+        }
+
+        .font-upload label {
+            font-size: 9px;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .font-upload input[type="file"] {
+            font-size: 9px;
+            width: 100%;
+        }
+
+        .font-name-display {
+            font-size: 8px;
+            margin-top: 4px;
+            opacity: 0.6;
+        }
+
         .grid-toggle input {
             width: auto;
             margin-right: 6px;
@@ -398,6 +422,11 @@
                 <label class="grid-toggle">
                     <input type="checkbox" id="grid-toggle" checked> GRID
                 </label>
+                <div class="font-upload">
+                    <label for="font-file">FONT (.ttf/.otf)</label>
+                    <input type="file" id="font-file" accept=".ttf,.otf,.woff,.woff2">
+                    <div class="font-name-display" id="current-font">Roboto Mono</div>
+                </div>
             </div>
             <h2>E</h2>
             <button class="add-button" id="add-element">+</button>
@@ -484,11 +513,15 @@
             }
         }
 
-        async function loadFont() {
+        async function loadFont(arrayBuffer = null, fontName = 'Roboto Mono') {
             try {
-                const fontUrl = 'fonts/roboto-mono/RobotoMono-Regular.ttf';
-                const response = await fetch(fontUrl);
-                const arrayBuffer = await response.arrayBuffer();
+                if (!arrayBuffer) {
+                    // Load default font
+                    const fontUrl = 'fonts/roboto-mono/RobotoMono-Regular.ttf';
+                    const response = await fetch(fontUrl);
+                    arrayBuffer = await response.arrayBuffer();
+                }
+
                 font = opentype.parse(arrayBuffer);
 
                 const unitsPerEm = font.unitsPerEm;
@@ -498,11 +531,24 @@
                 BASE_UNIT = sxHeight * scale;
                 UNIT = BASE_UNIT;
 
+                // Update font name
+                FONT_NAME = fontName;
+
+                // Load as web font via CSS FontFace API
+                const blob = new Blob([arrayBuffer]);
+                const fontUrl = URL.createObjectURL(blob);
+                const fontFace = new FontFace(fontName, `url(${fontUrl})`);
+                await fontFace.load();
+                document.fonts.add(fontFace);
+
+                // Update UI
                 document.getElementById('diag-info').textContent = `1U = ${BASE_UNIT.toFixed(1)}px`;
                 document.getElementById('diag-font').textContent = `FONT: ${FONT_NAME}`;
+                document.getElementById('current-font').textContent = fontName;
                 renderXDiagram(sxHeight, unitsPerEm, baseFontSize);
             } catch (err) {
                 console.error('Font load failed:', err);
+                alert('Font loading failed. Using previous font.');
             }
         }
 
@@ -828,6 +874,21 @@
             document.getElementById('grid-toggle').addEventListener('change', async (e) => {
                 showGrid = e.target.checked;
                 await render();
+            });
+
+            // Font file upload
+            document.getElementById('font-file').addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const arrayBuffer = event.target.result;
+                    const fontName = file.name.replace(/\.(ttf|otf|woff|woff2)$/i, '');
+                    await loadFont(arrayBuffer, fontName);
+                    await render();
+                };
+                reader.readAsArrayBuffer(file);
             });
 
             // Handle dragging for canvas resize
