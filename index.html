@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,9 +25,14 @@
             font-style: normal;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-        body, html {
+        body,
+        html {
             height: 100%;
             font-family: 'Inter', sans-serif;
             background: #000;
@@ -167,7 +173,7 @@
         }
 
         .add-button:hover {
-            background: rgba(0,0,0,0.1);
+            background: rgba(0, 0, 0, 0.1);
         }
 
         .main-content {
@@ -306,10 +312,29 @@
             z-index: 10;
         }
 
-        .canvas-handle.tl { top: -4px; left: -4px; cursor: nwse-resize; }
-        .canvas-handle.tr { top: -4px; right: -4px; cursor: nesw-resize; }
-        .canvas-handle.bl { bottom: -4px; left: -4px; cursor: nesw-resize; }
-        .canvas-handle.br { bottom: -4px; right: -4px; cursor: nwse-resize; }
+        .canvas-handle.tl {
+            top: -4px;
+            left: -4px;
+            cursor: nwse-resize;
+        }
+
+        .canvas-handle.tr {
+            top: -4px;
+            right: -4px;
+            cursor: nesw-resize;
+        }
+
+        .canvas-handle.bl {
+            bottom: -4px;
+            left: -4px;
+            cursor: nesw-resize;
+        }
+
+        .canvas-handle.br {
+            bottom: -4px;
+            right: -4px;
+            cursor: nwse-resize;
+        }
 
         #diagnostic-panel {
             position: absolute;
@@ -359,6 +384,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <aside class="sidebar">
@@ -406,18 +432,30 @@
 
     <script>
         let elements = [
-            { type: "A", text: "WARNING LABEL", fontSize: 1.2 },
-            { type: "B", icon: "svg", svgPath: "logos/tag2.svg", label: "TAG" },
             { type: "B", icon: "svg", svgPath: "logos/extendo.svg", label: "EXTENDO" },
-            { type: "C", rows: [
-                { label: "VOLTAGE", value: "230V AC" },
-                { label: "FREQUENCY", value: "50/60Hz" },
-                { label: "MODEL", value: "XJ-2000" }
-            ]},
-            { type: "B", icon: "svg", svgPath: "logos/extendo_nes.svg", label: "EXTENDO NES" },
-            { type: "B", icon: "svg", svgPath: "logos/pattern1.svg", label: "PATTERN 1" },
-            { type: "B", icon: "svg", svgPath: "logos/pattern2.svg", label: "PATTERN 2" },
-            { type: "B", icon: "svg", svgPath: "logos/pattern3.svg", label: "PATTERN 3" }
+            { type: "A", text: "FRAME 00000000", fontSize: 1.2 },
+            {
+                type: "C", rows: [
+                    { label: "RESOLUTION", value: "42.IN/400x300" },
+                    { label: "BOARD", value: "ESP32-S3" }
+                ]
+            },
+
+            {
+                type: "C", rows: [
+                    { label: "BALLISTICS", value: "PETG" }
+                ]
+            },
+            { type: "B", icon: "svg", svgPath: "logos/healthgoth.svg", label: "TAG" },
+            { type: "B", icon: "svg", svgPath: "logos/wideglobe.svg", label: "PATTERN 1" },
+            {
+                type: "C", rows: [
+                    { label: "POWER", value: "120W" }
+                ]
+            },
+            // { type: "B", icon: "svg", svgPath: "logos/stroke-svg.svg", label: "PATTERN 2" },
+            { type: "B", icon: "svg", svgPath: "logos/paper-logo-black.svg", label: "PATTERN 3" },
+            { type: "B", icon: "svg", svgPath: "logos/extendo_nes.svg", label: "EXTENDO NES" }
         ];
 
         let BASE_UNIT = 50;
@@ -532,9 +570,17 @@
                 if (svgData) {
                     const imported = paper.project.importSVG(svgData);
 
-                    // Detect aspect ratio and calculate target dimensions
-                    const naturalWidth = imported.bounds.width;
-                    const naturalHeight = imported.bounds.height;
+                    // Get bounds after import
+                    const bounds = imported.bounds;
+                    const naturalWidth = bounds.width;
+                    const naturalHeight = bounds.height;
+
+                    // Check if bounds are valid
+                    if (!naturalWidth || !naturalHeight || naturalWidth === 0 || naturalHeight === 0) {
+                        console.warn('Invalid SVG bounds for', svgPath);
+                        return group;
+                    }
+
                     const aspectRatio = naturalWidth / naturalHeight;
 
                     let targetWidth, targetHeight;
@@ -550,19 +596,24 @@
                         targetHeight = size * gridUnits / 2;
                         targetWidth = targetHeight * aspectRatio;
                     } else {
-                        // Square-ish: keep original behavior
-                        const maxDim = Math.max(naturalWidth, naturalHeight);
-                        targetWidth = (naturalWidth / maxDim) * size;
-                        targetHeight = (naturalHeight / maxDim) * size;
+                        // Square-ish: maintain aspect ratio within size
+                        const scaleFactor = size / Math.max(naturalWidth, naturalHeight);
+                        targetWidth = naturalWidth * scaleFactor;
+                        targetHeight = naturalHeight * scaleFactor;
                     }
 
-                    imported.scale(targetWidth / naturalWidth);
+                    // Scale uniformly to maintain aspect ratio
+                    const scaleX = targetWidth / naturalWidth;
+                    const scaleY = targetHeight / naturalHeight;
+                    const uniformScale = Math.min(scaleX, scaleY);
+
+                    imported.scale(uniformScale);
                     group.addChild(imported);
                 }
                 return group;
             }
 
-            switch(type) {
+            switch (type) {
                 case 'square':
                     group.addChild(new paper.Path.Rectangle({
                         point: [0, 0],
@@ -573,7 +624,7 @@
                     break;
                 case 'triangle':
                     group.addChild(new paper.Path({
-                        segments: [[size/2, 0], [0, size], [size, size]],
+                        segments: [[size / 2, 0], [0, size], [size, size]],
                         closed: true,
                         strokeColor: 'black',
                         strokeWidth: sw
@@ -581,15 +632,15 @@
                     break;
                 case 'circle':
                     group.addChild(new paper.Path.Circle({
-                        center: [size/2, size/2],
-                        radius: size/2,
+                        center: [size / 2, size / 2],
+                        radius: size / 2,
                         strokeColor: 'black',
                         strokeWidth: sw
                     }));
                     break;
                 case 'lightning':
                     group.addChild(new paper.Path({
-                        segments: [[size*0.6,0], [size*0.1,size*0.6], [size*0.5,size*0.6], [size*0.4,size], [size*0.9,size*0.4], [size*0.5,size*0.4]],
+                        segments: [[size * 0.6, 0], [size * 0.1, size * 0.6], [size * 0.5, size * 0.6], [size * 0.4, size], [size * 0.9, size * 0.4], [size * 0.5, size * 0.4]],
                         closed: true,
                         strokeColor: 'black',
                         strokeWidth: sw
@@ -597,10 +648,10 @@
                     break;
                 case 'skull':
                     group.addChildren([
-                        new paper.Path.Circle({ center: [size*0.5, size*0.35], radius: size*0.25, strokeColor: 'black', strokeWidth: sw }),
-                        new paper.Path.Rectangle({ point: [size*0.3, size*0.55], size: [size*0.4, size*0.3], strokeColor: 'black', strokeWidth: sw }),
-                        new paper.Path.Circle({ center: [size*0.38, size*0.32], radius: size*0.06, fillColor: 'black' }),
-                        new paper.Path.Circle({ center: [size*0.62, size*0.32], radius: size*0.06, fillColor: 'black' })
+                        new paper.Path.Circle({ center: [size * 0.5, size * 0.35], radius: size * 0.25, strokeColor: 'black', strokeWidth: sw }),
+                        new paper.Path.Rectangle({ point: [size * 0.3, size * 0.55], size: [size * 0.4, size * 0.3], strokeColor: 'black', strokeWidth: sw }),
+                        new paper.Path.Circle({ center: [size * 0.38, size * 0.32], radius: size * 0.06, fillColor: 'black' }),
+                        new paper.Path.Circle({ center: [size * 0.62, size * 0.32], radius: size * 0.06, fillColor: 'black' })
                     ]);
                     break;
             }
@@ -645,7 +696,7 @@
                         maxRowHeight = 0;
                     }
 
-                    icon.position = new paper.Point(cursorX + bounds.width/2, cursorY + bounds.height/2);
+                    icon.position = new paper.Point(cursorX + bounds.width / 2, cursorY + bounds.height / 2);
                     cursorX += itemWidth + GUTTER;
                     maxRowHeight = Math.max(maxRowHeight, itemHeight);
 
@@ -684,7 +735,7 @@
                         maxRowHeight = 0;
                     }
 
-                    group.position = new paper.Point(cursorX + bounds.width/2, cursorY + bounds.height/2);
+                    group.position = new paper.Point(cursorX + bounds.width / 2, cursorY + bounds.height / 2);
                     cursorX += tableWidth + GUTTER;
                     maxRowHeight = Math.max(maxRowHeight, tableHeight);
                 }
@@ -986,7 +1037,7 @@
                 });
             }
 
-            window.saveElement = async function() {
+            window.saveElement = async function () {
                 const element = elements[selectedElementIndex];
 
                 if (element.type === 'A') {
@@ -1016,7 +1067,7 @@
                 await render();
             };
 
-            window.deleteElement = async function() {
+            window.deleteElement = async function () {
                 if (confirm('Delete this element?')) {
                     elements.splice(selectedElementIndex, 1);
                     selectedElementIndex = null;
@@ -1026,13 +1077,13 @@
                 }
             };
 
-            window.addRow = function() {
+            window.addRow = function () {
                 const element = elements[selectedElementIndex];
                 element.rows.push({ label: 'NEW LABEL', value: 'NEW VALUE' });
                 showEditPanel(selectedElementIndex);
             };
 
-            window.deleteRow = function(rowIndex) {
+            window.deleteRow = function (rowIndex) {
                 const element = elements[selectedElementIndex];
                 element.rows.splice(rowIndex, 1);
                 showEditPanel(selectedElementIndex);
@@ -1046,4 +1097,5 @@
         });
     </script>
 </body>
+
 </html>
