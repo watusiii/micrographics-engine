@@ -59,19 +59,20 @@
             line-height: 1.2;
         }
 
-        .sidebar::-webkit-scrollbar {
+        ::-webkit-scrollbar {
             width: 8px;
+            height: 8px;
         }
 
-        .sidebar::-webkit-scrollbar-track {
+        ::-webkit-scrollbar-track {
             background: transparent;
         }
 
-        .sidebar::-webkit-scrollbar-thumb {
+        ::-webkit-scrollbar-thumb {
             background: #000;
         }
 
-        .sidebar::-webkit-scrollbar-thumb:hover {
+        ::-webkit-scrollbar-thumb:hover {
             background: #333;
         }
 
@@ -98,13 +99,15 @@
         }
 
         .size-inputs input {
-            width: 60px;
+            width: 70px;
             padding: 0;
+            margin: 0;
             font-family: inherit;
             border: none;
             background: transparent;
             font-size: 24px;
             font-weight: 400;
+            text-align: center;
         }
 
         /* Hide number input spinners */
@@ -116,6 +119,12 @@
 
         .size-inputs input[type=number] {
             -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        .size-inputs input:focus {
+            outline: 1px solid #000;
+            outline-offset: 2px;
         }
 
         .size-inputs .x {
@@ -161,14 +170,19 @@
 
         .sidebar-item {
             background: transparent;
-            border: 1px solid #000;
-            padding: 6px;
-            margin-bottom: 6px;
+            border: none;
+            border-bottom: 1px solid #000;
+            padding: 6px 0;
+            margin: 0;
             display: flex;
             align-items: center;
             font-size: 10px;
             cursor: move;
             user-select: none;
+        }
+
+        .sidebar-item:last-child {
+            border-bottom: none;
         }
 
         .sidebar-item.dragging {
@@ -228,7 +242,7 @@
             flex: 1;
             background: #d4d4d4;
             border-right: 2px solid #000;
-            padding: 15px;
+            padding: 0 15px 15px 15px;
             overflow-y: auto;
             display: none;
         }
@@ -238,33 +252,51 @@
         }
 
         #edit-panel h3 {
-            font-size: 12px;
+            font-size: 20px;
             font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin: 0 0 15px 0;
-            background: #000;
-            color: #fff;
-            padding: 8px;
+            margin: 0 0 8px 0;
+            background: transparent;
+            color: #000;
+            padding: 10px 0 8px 0;
         }
 
         #edit-panel label {
             display: block;
-            margin-bottom: 8px;
-            font-size: 10px;
+            margin-bottom: 4px;
+            font-size: 9px;
             font-weight: bold;
+            text-transform: uppercase;
         }
 
         #edit-panel input,
         #edit-panel select,
         #edit-panel textarea {
             width: 100%;
-            padding: 6px;
+            padding: 8px 6px;
             font-family: inherit;
             border: 1px solid #000;
             background: transparent;
             margin-bottom: 10px;
-            font-size: 11px;
+            font-size: 12px;
+            box-sizing: border-box;
+        }
+
+        #edit-panel input:focus,
+        #edit-panel select:focus,
+        #edit-panel textarea:focus {
+            outline: 2px solid #000;
+            outline-offset: 1px;
+        }
+
+        #edit-panel input[type=number]::-webkit-inner-spin-button,
+        #edit-panel input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        #edit-panel input[type=number] {
+            -moz-appearance: textfield;
+            appearance: textfield;
         }
 
         #edit-panel button {
@@ -284,14 +316,13 @@
         }
 
         #edit-panel button.danger {
-            background: #fff;
+            background: transparent;
             color: #000;
         }
 
         #edit-panel button.danger:hover {
-            background: #f00;
-            color: #fff;
-            border-color: #f00;
+            background: #000;
+            color: #d4d4d4;
         }
 
         .table-rows {
@@ -300,19 +331,23 @@
 
         .table-row-item {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             margin-bottom: 8px;
-            align-items: center;
+            align-items: stretch;
         }
 
         .table-row-item input {
             margin-bottom: 0;
+            padding: 6px;
+            flex: 1;
+            min-width: 0;
         }
 
         .table-row-item button {
             margin: 0;
-            padding: 4px 8px;
+            padding: 6px 10px;
             font-size: 16px;
+            flex-shrink: 0;
         }
 
         #canvas {
@@ -361,11 +396,8 @@
         }
 
         #diagnostic-panel {
-            position: absolute;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            width: 250px;
+            width: 180px;
+            flex-shrink: 0;
             background: transparent;
             border-left: 2px solid #000;
             font-family: 'Inter', sans-serif;
@@ -374,17 +406,15 @@
         }
 
         #diagnostic-panel header {
-            font-size: 9px;
-            font-weight: bold;
-            padding: 8px;
-            background: #000;
-            color: #fff;
-            text-transform: uppercase;
-            border-bottom: 2px solid #000;
+            font-size: 20px;
+            font-weight: 900;
+            padding: 10px 8px 8px 8px;
+            background: transparent;
+            color: #000;
         }
 
         #diagnostic-panel .content {
-            padding: 10px;
+            padding: 8px;
             background: #d4d4d4;
             flex: 1;
             overflow: hidden;
@@ -394,17 +424,23 @@
 
         #diagnostic-panel .x-diagram {
             width: 100%;
-            height: 80px;
-            margin-bottom: 10px;
+            height: 60px;
+            margin-bottom: 8px;
         }
 
         #diagnostic-panel .x-diagram svg {
-            max-height: 80px;
+            max-height: 60px;
         }
 
         #diagnostic-panel .stats {
-            font-size: 9px;
+            font-size: 8px;
             line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        #diagnostic-panel #diag-font {
+            font-size: 7px;
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -415,9 +451,9 @@
             <h2>S</h2>
             <div class="canvas-controls">
                 <div class="size-inputs">
-                    <input type="number" id="canvas-width" value="600">
+                    <input type="number" id="canvas-width" value="">
                     <span class="x">×</span>
-                    <input type="number" id="canvas-height" value="400">
+                    <input type="number" id="canvas-height" value="">
                 </div>
                 <label class="grid-toggle">
                     <input type="checkbox" id="grid-toggle" checked> GRID
@@ -443,11 +479,11 @@
         </main>
         <div class="bottom-section">
             <div id="edit-panel">
-                <h3>Edit Element</h3>
+                <h3>X</h3>
                 <div id="edit-form"></div>
             </div>
             <aside id="diagnostic-panel">
-                <header>Unit System</header>
+                <header>U</header>
                 <div class="content">
                     <div class="x-diagram" id="x-diagram"></div>
                     <div class="stats">
@@ -476,15 +512,17 @@
                 ]
             },
             { type: "B", icon: "svg", svgPath: "logos/healthgoth.svg", label: "TAG" },
-            { type: "B", icon: "svg", svgPath: "logos/wideglobe.svg", label: "PATTERN 1" },
+            { type: "B", icon: "svg", svgPath: "logos/wideglobe.svg", label: "GLOBE" },
             {
                 type: "C", rows: [
-                    { label: "POWER", value: "120W" }
+                    { label: "POWER", value: "80mW" }
                 ]
             },
             // { type: "B", icon: "svg", svgPath: "logos/stroke-svg.svg", label: "PATTERN 2" },
-            { type: "B", icon: "svg", svgPath: "logos/paper-logo-black.svg", label: "PATTERN 3" },
-            { type: "B", icon: "svg", svgPath: "logos/extendo_nes.svg", label: "EXTENDO NES" }
+            { type: "B", icon: "svg", svgPath: "logos/paper-logo-black.svg", label: "VIVA" },
+            { type: "B", icon: "svg", svgPath: "logos/extendo_nes.svg", label: "EXTENDO NES" },
+            { type: "A", text: "Truth by Design", fontSize: 0.8 }
+
         ];
 
         let BASE_UNIT = 50;
@@ -492,8 +530,8 @@
         let GRID_SIZE = 50;
         let GUTTER = 25;
         let ICON_SIZE = 100;
-        let CANVAS_WIDTH = 600;
-        let CANVAS_HEIGHT = 400;
+        let CANVAS_WIDTH = 200;
+        let CANVAS_HEIGHT = 278;
         let font = null;
         let svgCache = {};
         let FONT_NAME = 'Roboto Mono';
@@ -557,14 +595,14 @@
             const svgNS = "http://www.w3.org/2000/svg";
             const svg = document.createElementNS(svgNS, "svg");
             svg.setAttribute("width", "100%");
-            svg.setAttribute("height", "80");
+            svg.setAttribute("height", "60");
 
             if (!font) return;
 
             const glyph = font.charToGlyph('x');
-            const baseline = 60;
+            const baseline = 48;
             const centerX = 100;
-            const renderSize = 60;
+            const renderSize = 45;
             const path = glyph.getPath(centerX, baseline, renderSize);
 
             const pathElement = document.createElementNS(svgNS, "path");
@@ -601,7 +639,7 @@
 
             svg.appendChild(topLine);
             svg.appendChild(bottomLine);
-            svg.setAttribute("viewBox", `0 0 200 80`);
+            svg.setAttribute("viewBox", `0 0 200 60`);
 
             container.innerHTML = '';
             container.appendChild(svg);
