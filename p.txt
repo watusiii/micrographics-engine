@@ -1,6 +1,0 @@
-The unit diagram I think it'd be way smaller We can minimize a lot of that space to make more room for the rest of the layout
-Remove the white color from the on all non monochromatic color from the delete button and anything else in the unit
-Remove the top padding from the edit element window
-Separate the element cards only by a single borderline space otherwise
-Don't make the size numbers input numbers just make them numbers that change so that Well yeah make them input but Gotta style it better not just make the spinner buttons invisible because the spacing isn't consistent
-Let's change the unit system label to just U 
