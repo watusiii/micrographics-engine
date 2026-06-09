@@ -458,6 +458,15 @@
                 <label class="grid-toggle">
                     <input type="checkbox" id="grid-toggle" checked> GRID
                 </label>
+                <div class="grid-toggle" style="margin-top: 8px;">
+                    <label style="display: block; margin-bottom: 4px;">LAYOUT:</label>
+                    <label style="display: block; margin-bottom: 2px;">
+                        <input type="radio" name="layout-mode" value="flow" checked> FLOW
+                    </label>
+                    <label style="display: block;">
+                        <input type="radio" name="layout-mode" value="justified"> JUSTIFIED
+                    </label>
+                </div>
                 <div class="font-upload">
                     <label for="font-file">FONT (.ttf/.otf)</label>
                     <input type="file" id="font-file" accept=".ttf,.otf,.woff,.woff2">
@@ -537,6 +546,7 @@
         let FONT_NAME = 'Roboto Mono';
         let selectedElementIndex = null;
         let showGrid = true;
+        let layoutMode = 'flow';
 
         async function loadSVG(path) {
             if (svgCache[path]) return svgCache[path];
@@ -743,6 +753,14 @@
         }
 
         async function renderContent(canvasWidth) {
+            if (layoutMode === 'justified') {
+                return await renderContentJustified(canvasWidth);
+            } else {
+                return await renderContentFlow(canvasWidth);
+            }
+        }
+
+        async function renderContentFlow(canvasWidth) {
             let cursorX = GUTTER;
             let cursorY = GUTTER;
             let maxRowHeight = 0;
@@ -831,6 +849,141 @@
             };
         }
 
+        async function renderContentJustified(canvasWidth) {
+            // Build rows first
+            const rows = [];
+            let currentRow = [];
+            let currentRowWidth = 0;
+
+            for (const element of elements) {
+                if (element.type === 'A') {
+                    // Spanners: flush current row, add spanner as own row
+                    if (currentRow.length > 0) {
+                        rows.push({ type: 'normal', items: currentRow });
+                        currentRow = [];
+                        currentRowWidth = 0;
+                    }
+
+                    const text = new paper.PointText({
+                        point: [0, 0],
+                        content: element.text,
+                        fontFamily: FONT_NAME,
+                        fontSize: element.fontSize * UNIT,
+                        fontWeight: 'bold',
+                        fillColor: 'black',
+                        justification: 'center'
+                    });
+
+                    rows.push({ type: 'spanner', element: element, item: text });
+
+                } else if (element.type === 'B') {
+                    const icon = await createIcon(element.icon, ICON_SIZE, element.svgPath);
+                    const bounds = icon.bounds;
+                    const itemWidth = Math.ceil(bounds.width / GRID_SIZE) * GRID_SIZE;
+                    const itemHeight = Math.ceil(bounds.height / GRID_SIZE) * GRID_SIZE;
+
+                    // Check if fits in current row
+                    const neededWidth = currentRowWidth + itemWidth + (currentRow.length > 0 ? GUTTER : 0);
+                    if (neededWidth > canvasWidth - 2 * GUTTER && currentRow.length > 0) {
+                        // Wrap to new row
+                        rows.push({ type: 'normal', items: currentRow });
+                        currentRow = [];
+                        currentRowWidth = 0;
+                    }
+
+                    currentRow.push({ item: icon, width: itemWidth, height: itemHeight, bounds: bounds });
+                    currentRowWidth += itemWidth + (currentRow.length > 1 ? GUTTER : 0);
+
+                } else if (element.type === 'C') {
+                    const rowHeight = UNIT * 1.2;
+                    const group = new paper.Group();
+
+                    element.rows.forEach((row, i) => {
+                        const y = (i + 1) * rowHeight;
+                        const label = new paper.PointText({
+                            point: [0, y],
+                            content: row.label,
+                            fontFamily: FONT_NAME,
+                            fontSize: UNIT * 0.8,
+                            fillColor: 'black',
+                            justification: 'left'
+                        });
+                        const value = new paper.PointText({
+                            point: [label.bounds.width + GUTTER, y],
+                            content: row.value,
+                            fontFamily: FONT_NAME,
+                            fontSize: UNIT * 0.8,
+                            fillColor: 'black',
+                            justification: 'left'
+                        });
+                        group.addChildren([label, value]);
+                    });
+
+                    const bounds = group.bounds;
+                    const tableWidth = Math.ceil(bounds.width / GRID_SIZE) * GRID_SIZE;
+                    const tableHeight = bounds.height;
+
+                    // Check if fits in current row
+                    const neededWidth = currentRowWidth + tableWidth + (currentRow.length > 0 ? GUTTER : 0);
+                    if (neededWidth > canvasWidth - 2 * GUTTER && currentRow.length > 0) {
+                        // Wrap to new row
+                        rows.push({ type: 'normal', items: currentRow });
+                        currentRow = [];
+                        currentRowWidth = 0;
+                    }
+
+                    currentRow.push({ item: group, width: tableWidth, height: tableHeight, bounds: bounds });
+                    currentRowWidth += tableWidth + (currentRow.length > 1 ? GUTTER : 0);
+                }
+            }
+
+            // Flush last row
+            if (currentRow.length > 0) {
+                rows.push({ type: 'normal', items: currentRow });
+            }
+
+            // Now position everything
+            let cursorY = GUTTER;
+
+            for (const row of rows) {
+                if (row.type === 'spanner') {
+                    // Center spanners
+                    const text = row.item;
+                    text.position = new paper.Point(canvasWidth / 2, cursorY + row.element.fontSize * UNIT);
+                    cursorY += row.element.fontSize * UNIT + GUTTER;
+
+                } else {
+                    // Justified positioning
+                    const items = row.items;
+                    const maxRowHeight = Math.max(...items.map(i => i.height));
+
+                    if (items.length === 1) {
+                        // Single item: left align
+                        const item = items[0];
+                        item.item.position = new paper.Point(GUTTER + item.bounds.width / 2, cursorY + item.bounds.height / 2);
+                    } else {
+                        // Multiple items: justify
+                        const totalItemWidth = items.reduce((sum, i) => sum + i.width, 0);
+                        const availableSpace = canvasWidth - 2 * GUTTER - totalItemWidth;
+                        const gap = availableSpace / (items.length - 1);
+
+                        let cursorX = GUTTER;
+                        for (const item of items) {
+                            item.item.position = new paper.Point(cursorX + item.bounds.width / 2, cursorY + item.bounds.height / 2);
+                            cursorX += item.width + gap;
+                        }
+                    }
+
+                    cursorY += maxRowHeight + GUTTER;
+                }
+            }
+
+            return {
+                width: canvasWidth,
+                height: cursorY
+            };
+        }
+
         async function render() {
             paper.project.clear();
 
@@ -912,6 +1065,14 @@
             document.getElementById('grid-toggle').addEventListener('change', async (e) => {
                 showGrid = e.target.checked;
                 await render();
+            });
+
+            // Layout mode toggle
+            document.querySelectorAll('input[name="layout-mode"]').forEach(radio => {
+                radio.addEventListener('change', async (e) => {
+                    layoutMode = e.target.value;
+                    await render();
+                });
             });
 
             // Font file upload
