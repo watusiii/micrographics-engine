@@ -132,6 +132,23 @@
             font-weight: 900;
         }
 
+        .size-presets {
+            margin-bottom: 12px;
+            width: 100%;
+        }
+
+        .size-presets select {
+            width: 100%;
+            padding: 4px;
+            font-family: inherit;
+            border: 1px solid #000;
+            background: transparent;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
         .grid-toggle {
             font-size: 9px;
             font-weight: bold;
@@ -451,9 +468,17 @@
             <h2>S</h2>
             <div class="canvas-controls">
                 <div class="size-inputs">
-                    <input type="number" id="canvas-width" value="">
+                    <input type="number" id="canvas-width" value="200">
                     <span class="x">×</span>
-                    <input type="number" id="canvas-height" value="">
+                    <input type="number" id="canvas-height" value="278">
+                </div>
+                <div class="size-presets">
+                    <select id="size-presets">
+                        <option value="" disabled selected>PRESETS</option>
+                        <option value="1080x200">1080 × 200 (STRIP)</option>
+                        <option value="600x400">600 × 400 (DEFAULT)</option>
+                        <option value="400x600">400 × 600 (TALL)</option>
+                    </select>
                 </div>
                 <label class="grid-toggle">
                     <input type="checkbox" id="grid-toggle" checked> GRID
@@ -1059,6 +1084,18 @@
             document.getElementById('canvas-height').addEventListener('change', async (e) => {
                 CANVAS_HEIGHT = parseInt(e.target.value) || 400;
                 await render();
+            });
+
+            // Size presets dropdown
+            document.getElementById('size-presets').addEventListener('change', async (e) => {
+                const [w, h] = e.target.value.split('x').map(Number);
+                if (w && h) {
+                    CANVAS_WIDTH = w;
+                    CANVAS_HEIGHT = h;
+                    document.getElementById('canvas-width').value = w;
+                    document.getElementById('canvas-height').value = h;
+                    await render();
+                }
             });
 
             // Grid toggle
