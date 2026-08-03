@@ -16,4 +16,11 @@ All rights reserved.
 
 ---
 
-Built by [Extendo](https://extendo.bet) · Part of the [Viva Carta](https://vivacarta.net) network
+## Links
+
+- **Case study** — [read the writeup](https://extendo.bet/lab/micrographic-engine/)
+- **All work** — [watusi.cloud](https://watusi.cloud)
+- **Contact** — laervin.lightray@gmail.com
+
+---
+Built by [Watusi](https://watusi.cloud) ·  of [Viva Carta](https://vivacarta.net) network
